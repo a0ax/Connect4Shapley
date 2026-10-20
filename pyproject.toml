@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "c4shap"
+version = "0.1.0"
+description = "Shapley-value explanations for AlphaZero-style Connect 4 policy/value networks"
+requires-python = ">=3.10"
+dependencies = ["numpy", "shap>=0.45", "matplotlib"]
+
+[project.optional-dependencies]
+az = ["torch", "safetensors", "huggingface_hub"]
+dev = ["pytest"]
+
+[project.scripts]
+c4shap = "c4shap.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
