@@ -1,0 +1,2 @@
+[console_scripts]
+c4shap = c4shap.cli:main

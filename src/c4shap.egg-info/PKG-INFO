@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: c4shap
+Version: 0.1.0
+Summary: Shapley-value explanations for AlphaZero-style Connect 4 policy/value networks
+Requires-Python: >=3.10
+Requires-Dist: numpy
+Requires-Dist: shap>=0.45
+Requires-Dist: matplotlib
+Provides-Extra: az
+Requires-Dist: torch; extra == "az"
+Requires-Dist: safetensors; extra == "az"
+Requires-Dist: huggingface_hub; extra == "az"
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"

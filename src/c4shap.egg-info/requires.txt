@@ -1,0 +1,11 @@
+numpy
+shap>=0.45
+matplotlib
+
+[az]
+torch
+safetensors
+huggingface_hub
+
+[dev]
+pytest
