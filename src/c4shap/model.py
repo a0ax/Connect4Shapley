@@ -51,12 +51,24 @@ class AZModel:
         self.net.load_state_dict(load_file(w_path))
         self.net.to(device).eval()
 
+
     def _encode(self, grids: np.ndarray, ply: int):
-        # VERIFY against src/az: plane order, row orientation, meaning of the 3rd plane.
+        """Encode boards exactly as the pretrained model expects.
+
+        grids: mover-relative (+1 = side to move, -1 = opponent)
+        ply: number of moves already played in the original position
+        """
         t = self.torch
-        g = t.as_tensor(grids, dtype=t.float32)
-        side = t.full_like(g, float(ply % 2))
-        return t.stack([(g == 1).float(), (g == -1).float(), side], 1).to(self.device)
+        g = t.as_tensor(grids, dtype=t.float32, device=self.device)
+
+        own = (g == 1).float()
+        opponent = (g == -1).float()
+
+        # The training encoder uses 1 for the first player's turn
+        # and 0 for the second player's turn.
+        side_to_move = t.full_like(g, 1.0 if ply % 2 == 0 else 0.0)
+
+        return t.stack([own, opponent, side_to_move], dim=1)
 
     def evaluate(self, grids, ply):
         t, probs, values = self.torch, [], []
