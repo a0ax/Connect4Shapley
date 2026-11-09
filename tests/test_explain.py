@@ -1,3 +1,5 @@
+import importlib.util
+
 import numpy as np
 import pytest
 
@@ -15,6 +17,8 @@ class AdditiveModel:
         return np.full((len(grids), 7), 1 / 7), (grids * self.W).sum((1, 2)).astype(float)
 
 
+needs_shap = pytest.mark.skipif(importlib.util.find_spec("shap") is None, reason="shap not installed")
+
 W = np.random.default_rng(0).normal(size=(6, 7))
 
 
@@ -30,6 +34,7 @@ def test_settle():
     assert list(out[0, :, 0]) == [0, 0, 0, 0, 1, -1]
 
 
+@needs_shap
 def test_cells_additive_exact():
     b = Board.from_moves("4453")
     e = explain(AdditiveModel(W), b, target="value", groups="cells", settle=False)
@@ -38,6 +43,7 @@ def test_cells_additive_exact():
         assert p == pytest.approx(b.grid[r, c] * W[r, c])
 
 
+@needs_shap
 def test_columns_additive_exact():
     b = Board.from_moves("4453")
     e = explain(AdditiveModel(W), b, target="value", groups="columns", settle=False)
@@ -45,7 +51,19 @@ def test_columns_additive_exact():
         assert p == pytest.approx(sum(b.grid[r, c] * W[r, c] for r, c in cells))
 
 
+@needs_shap
 @pytest.mark.parametrize("groups,moves", [("columns", "4453312"), ("cells", "44533122116655")])
 def test_efficiency(groups, moves):
     e = explain(ToyModel(), Board.from_moves(moves), groups=groups, nsamples=2000)
+    assert e.phi.sum() == pytest.approx(e.full - e.base, abs=1e-6)
+
+
+@needs_shap
+def test_solver_model_shapley_is_efficient():
+    """Shapley over columns of the perfect player's value sums to full - base."""
+    from c4shap import SolverModel, ToyModel
+
+    # sparse coalitions can't be solved quickly: cap the search and fall back to the toy model
+    model = SolverModel(node_limit=2_000_000, fallback=ToyModel())
+    e = explain(model, Board.from_moves("1212124"), target="value", groups="columns")
     assert e.phi.sum() == pytest.approx(e.full - e.base, abs=1e-6)
