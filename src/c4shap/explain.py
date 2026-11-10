@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-import shap
 
 from .board import COLS, ROWS, Board
 
@@ -63,6 +62,11 @@ def explain(model, board: Board, *, target: str = "policy", move: int | None = N
             groups: str = "columns", settle: bool = True, nsamples: int = 4096,
             seed: int = 0) -> Explanation:
     """move is a 0-based column; defaults to the model's top move on the full board."""
+    import shap  # imported lazily so the solver / group explainer work without shap installed
+
+    if not settle and getattr(model, "requires_gravity", False):
+        raise ValueError(f"{type(model).__name__} needs gravity-valid boards; use settle=True")
+
     grid = board.grid
     members, labels = _groups(grid, groups)
     n = len(members)
