@@ -19,9 +19,11 @@ class Board:
         absolute = np.zeros((ROWS, COLS), np.int8)
         heights = [0] * COLS
         for i, ch in enumerate(moves):
+            if ch not in "1234567":
+                raise ValueError(f"{moves!r} is not a move string: use digits 1-7, one per move (e.g. 4453)")
             c = int(ch) - 1
-            if not 0 <= c < COLS or heights[c] >= ROWS:
-                raise ValueError(f"illegal move {ch!r} at ply {i + 1}")
+            if heights[c] >= ROWS:
+                raise ValueError(f"column {ch} is already full at move {i + 1}")
             absolute[ROWS - 1 - heights[c], c] = 1 if i % 2 == 0 else -1
             heights[c] += 1
         grid = absolute if len(moves) % 2 == 0 else -absolute

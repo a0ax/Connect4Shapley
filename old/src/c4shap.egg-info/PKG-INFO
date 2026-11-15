@@ -1,7 +1,7 @@
 Metadata-Version: 2.4
 Name: c4shap
-Version: 0.1.0
-Summary: Shapley-value explanations for AlphaZero-style Connect 4 policy/value networks
+Version: 0.2.0
+Summary: Explanations for Connect 4 AIs: Shapley values, a perfect solver, and an experimental stone-group explainer
 Requires-Python: >=3.10
 Requires-Dist: numpy
 Requires-Dist: shap>=0.45

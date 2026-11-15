@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "c4shap"
-version = "0.2.0"
-description = "Explanations for Connect 4 AIs: Shapley values, a perfect solver, and an experimental stone-group explainer"
+version = "0.3.0"
+description = "Exact Shapley-value explanations for an AlphaZero Connect 4 network"
 requires-python = ">=3.10"
-dependencies = ["numpy", "shap>=0.45", "matplotlib"]
+dependencies = ["numpy", "matplotlib"]
 
 [project.optional-dependencies]
 az = ["torch", "safetensors", "huggingface_hub"]

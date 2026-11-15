@@ -1,34 +1,48 @@
 import numpy as np
+import pytest
 
 from c4shap import Board
-from c4shap.model import SolverModel, calibrate_encodings, make_battery, _split_outputs
+from c4shap.model import CHECKS, _split_outputs, encode, masked_softmax, pick_encoding
 
 
-def test_solver_model_plays_perfectly():
-    m = SolverModel()
-    b = Board.from_moves("152637")
-    probs, values = m.evaluate(b.grid[None], b.ply)
-    assert probs[0].argmax() == 3 and probs[0].sum() == 1 and values[0] == 1
-    b = Board.from_moves("3654461133122")                  # only column 5 holds the draw
-    probs, values = m.evaluate(b.grid[None], b.ply)
-    assert probs[0].argmax() == 4 and values[0] == 0
+def test_check_positions_are_legal():
+    for moves, col in CHECKS:
+        assert 1 <= col <= 7 and Board.from_moves(moves).grid[0, col - 1] == 0
 
 
-def test_solver_model_handles_masked_board_with_a_four():
-    g = np.zeros((6, 7), np.int8)
-    g[5, :4] = 1                                           # mover already has four in a row
-    probs, values = SolverModel().evaluate(g[None], 7)
-    assert values[0] == 1 and abs(probs[0].sum() - 1) < 1e-6
+def test_masked_softmax_ignores_full_columns():
+    g = np.zeros((1, 6, 7), np.int8)
+    g[0, 0, 2] = 1
+    p = masked_softmax(np.zeros((1, 7)), g)
+    assert p[0, 2] == 0 and p.sum() == pytest.approx(1)
 
 
-def test_calibration_ranks_a_correct_encoding_first():
-    good = SolverModel()
-    blind = lambda g, ply: (np.full((len(g), 7), 1 / 7), np.zeros(len(g)))
-    rows = calibrate_encodings({"blind": blind, "solver": good.evaluate}, make_battery(20))
-    assert rows[0][0] == "solver" and rows[0][1] == 1.0 and rows[-1][1] < 0.5
+def test_encode():
+    g = Board.from_moves("4").grid[None]                 # opponent stone at d1; mover = player 2
+    x = encode(g, 1)
+    assert x.shape == (1, 3, 6, 7) and x[0, 1, 5, 3] == 1 and x[0, 2].min() == 1   # theirs plane, side=ply%2
+    assert encode(g, 1, flip=True)[0, 1, 0, 3] == 1       # rows flipped
+    assert encode(g, 1, absolute=True)[0, 0, 5, 3] == 1   # absolute: player 1 plane
+    assert encode(g, 1, planes=2).shape == (1, 2, 6, 7)
 
 
-class _T:                                                  # stands in for a torch tensor
+def test_pick_encoding_finds_the_one_that_works():
+    target = dict(mine_first=False, side="1-ply%2", flip=True, absolute=False)
+    answers = {Board.from_moves(m).grid.tobytes(): col - 1 for m, col in CHECKS}
+
+    def fake_net(grids, ply, **opts):                    # plays right only under `target`
+        p = np.full((1, 7), 1 / 7)
+        if opts == target:
+            p[0, answers[grids[0].tobytes()]] = 1
+        return p
+
+    best, report = pick_encoding(fake_net)
+    assert best == target and report[0][0] == len(CHECKS) and report[1][0] < 3
+    with pytest.raises(RuntimeError, match="no input encoding"):
+        pick_encoding(lambda g, ply, **o: np.full((1, 7), 1 / 7) + np.eye(7)[0] * 1e-3)
+
+
+class _T:                                                # stands in for a torch tensor
     def __init__(self, a): self.a = np.asarray(a, np.float32)
     def detach(self): return self
     def float(self): return self
@@ -41,16 +55,3 @@ def test_split_outputs_accepts_either_head_order():
     for out in ((_T(pol), _T(val)), (_T(val), _T(pol)), {"value": _T(val), "policy": _T(pol)}):
         p, v = _split_outputs(out)
         assert p.shape == (3, 7) and v.shape == (3,)
-
-
-def test_solver_model_limit_and_fallback():
-    import pytest
-    from c4shap.model import ToyModel
-    from c4shap.solver import SearchLimit
-
-    empty = np.zeros((1, 6, 7), np.int8)
-    with pytest.raises(SearchLimit):
-        SolverModel(node_limit=1000).evaluate(empty, 0)
-    m = SolverModel(node_limit=1000, fallback=ToyModel())
-    probs, _ = m.evaluate(empty, 0)
-    assert m.fallbacks == 1 and abs(probs[0].sum() - 1) < 1e-6

@@ -4,7 +4,10 @@ src/c4shap/__init__.py
 src/c4shap/board.py
 src/c4shap/cli.py
 src/c4shap/explain.py
+src/c4shap/groups.py
 src/c4shap/model.py
+src/c4shap/positions.py
+src/c4shap/solver.py
 src/c4shap/viz.py
 src/c4shap.egg-info/PKG-INFO
 src/c4shap.egg-info/SOURCES.txt
@@ -13,4 +16,8 @@ src/c4shap.egg-info/entry_points.txt
 src/c4shap.egg-info/requires.txt
 src/c4shap.egg-info/top_level.txt
 tests/test_explain.py
+tests/test_groups.py
+tests/test_model.py
+tests/test_positions.py
 tests/test_real_model.py
+tests/test_solver.py
